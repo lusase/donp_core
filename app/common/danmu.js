@@ -13,8 +13,6 @@ const danmu_addr = 'openbarrage.douyutv.com'
 const free_gift = {name: '免费礼物', price: 0, is_yuwan: false, isFree: true}
 
 
-
-
 class douyu_danmu extends events {
 
   constructor(opt) {

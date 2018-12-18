@@ -37,7 +37,6 @@ exports.insertOrUpdateUser = async user => {
     await this.insertUser(user)
   }
 }
-
 exports.insertDmCount = async obj => {
   await mysql.query('insert into danmu_count set ?', obj)
 }
