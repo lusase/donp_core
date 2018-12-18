@@ -1,16 +1,17 @@
 const net = require('net')
 const url = require('url')
 const events = require('events')
-const r = require('./r')
 const socks = require('socks')
 const socks_agent = require('socks-proxy-agent')
+const r = require('./r')
+const {giftStore} = require('../store/index')
 
 const timeout = 30000
 const danmu_port = 8601
 const heartbeat_interval = 45000
 const fresh_gift_interval = 60*60*1000
 const danmu_addr = 'openbarrage.douyutv.com'
-const free_gift = {name: '免费礼物', price: 0, is_yuwan: false, isFree: true}
+const free_gift = {name: '免费礼物', pc: 0, type: 1, id: -1}
 
 
 class douyu_danmu extends events {
@@ -44,19 +45,29 @@ class douyu_danmu extends events {
   async _get_gift_info() {
     const danmuService = require('../service/danmu')
     try {
-      const body = await r({
+      const body_p = r({
         url: `http://open.douyucdn.cn/api/RoomApi/room/${this._roomid}`,
         agent: this._agent
       })
+      const res_p = danmuService.getGiftInfo()
+
+      const [body, res] = await Promise.all([body_p, res_p])
+
+      res.forEach(g => giftStore.add(g))
+
       body.data.gift.forEach(async g => {
-        await danmuService.insertGiftInfo({name: g.name, pc: g.pc, id: g.id})
+        const _g = {name: g.name, pc: g.pc, id: g.id, type: g.type}
+        const g1 = giftStore.find(_g)
+        if (g1) {
+          if (g1.name !== g.name || g1.type !== g.type || g1.pc !== g.pc) {
+            await danmuService.updateGiftInfo(_g)
+          }
+        } else {
+          giftStore.add(_g)
+          await danmuService.insertGiftInfo(_g)
+        }
       })
-      const gift_info = {}
-      const res = await danmuService.getGiftInfo()
-      res.forEach(g => {
-        gift_info[g.id] = {name: g.name, price: g.pc, is_yuwan: g.id === '191'}
-      })
-      return gift_info
+      return giftStore
     } catch(e) {
       console.log('_get_gift_info 出错', e)
     }
@@ -64,15 +75,17 @@ class douyu_danmu extends events {
 
   async _fresh_gift_info() {
     const gift_info = await this._get_gift_info()
-    if (!gift_info) return this.emit('error', new Error('Fail to fresh room info'))
-    this._gift_info = gift_info
+    if (!gift_info) {
+      this.emit('error', new Error('Fail to fresh room info'))
+      this.emit('close')
+      return Promise.reject('-------无法获取礼物信息--------')
+    }
   }
 
   async start() {
     if (this._starting) return
     this._starting = true
     await this._fresh_gift_info()
-    if (!this._gift_info) return this.emit('close')
     this._fresh_gift_info_timer = setInterval(this._fresh_gift_info.bind(this), fresh_gift_interval)
     this._start_tcp()
   }
@@ -212,7 +225,7 @@ class douyu_danmu extends events {
   }
 
   _build_gift(msg) {
-    const gift = this._gift_info[msg.gfid] || free_gift
+    const gift = giftStore.get(msg.gfid) || free_gift
     const count = parseInt(msg.gfcnt || 1)
     const msg_obj = {
       type: 'gift',
@@ -221,15 +234,9 @@ class douyu_danmu extends events {
       from: this._build_user(msg),
       id: `${msg.uid}${msg.rid}${msg.gfid}${msg.hits}${msg.level}`,
       count,
-      price: count * gift.price,
-      earn: count * gift.price,
-      isFree: !!gift.isFree
-    }
-    if (gift.is_yuwan) {
-      msg_obj.type = 'yuwan'
-      msg_obj.isFree = true
-      msg_obj.price = 0
-      msg_obj.earn = 0
+      price: count * gift.pc,
+      earn: count * gift.pc,
+      isFree: gift.type === 1
     }
     return msg_obj
   }

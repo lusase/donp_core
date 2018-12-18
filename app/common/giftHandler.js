@@ -10,7 +10,7 @@ class GiftHandler {
     this.startSchedule()
   }
   push(msg) {
-    if (msg.price >= 1) {
+    if (!msg.isFree) {
       danmuService.insertPaidGift({
         gift_name: msg.name,
         gift_price: msg.price,
@@ -19,7 +19,7 @@ class GiftHandler {
         create_time: new Date()
       })
     } else {
-      if(msg.type === 'yuwan') {
+      if(+msg.id === 192) {
         this.yw_amount++
       } else {
         this.gf_amount++

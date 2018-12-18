@@ -31,7 +31,6 @@ client.on('message', async (msg) => {
       chatHandler.push(msg)
       break
     case 'gift':
-    case 'yuwan':
       giftHandler.push(msg)
       break
   }

@@ -53,8 +53,10 @@ exports.getGiftInfo = async () => {
 }
 
 exports.insertGiftInfo = async (gift) => {
-  const r = await mysql.query('select * from gifts where id = ?', gift.id)
-  if (!r || !r.length) {
-    await mysql.query('insert into gifts set ?', gift)
-  }
+  await mysql.query('insert into gifts set ?', gift)
+}
+
+exports.updateGiftInfo = async (gift) => {
+  const {id, ...rest} = gift
+  await mysql.query('update gifts set ? where id = ?', [rest, id])
 }
