@@ -155,6 +155,7 @@ class douyu_danmu extends events {
   }
 
   _format_msg(msg) {
+    console.log(msg)
     try {
       msg = JSON.parse(msg.replace(/\\/g, ''))
     }catch (e) { return }
