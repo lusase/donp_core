@@ -189,10 +189,10 @@ class douyu_danmu extends events {
         this._join_group()
         break
       case 'uenter':
-	// console.log('uenter')
-	msg_obj = {type: msg.type, from: this._build_user(msg)}
+        // console.log('uenter')
+        msg_obj = {type: msg.type, from: this._build_user(msg)}
         this.emit('message', msg_obj)
-	break
+	      break
       default:
         //msg_obj = {type: msg.type, from: this._build_user(msg)}
         //this.emit('message', msg_obj)
