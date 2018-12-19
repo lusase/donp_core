@@ -1,13 +1,26 @@
 const mysql = require('../common/mysql')
 
+function pad0(e) {
+  const str = '0' + e
+  return str.substring(str.length - 2)
+}
+
+function getDateStr(dt) {
+  return dt.getFullYear() + '-' + pad0(dt.getMonth() + 1) + '-' + pad0(dt.getDate())
+}
+
 exports.insertUser = async user => {
   try {
+    const dt = new Date()
+    const dtSr = getDateStr(dt)
     await mysql.query('insert into dy_user set ? ', {
       u_id: user.rid,
       u_name: user.name,
       u_level: user.level,
       noble_level: user.nl,
-      latest_time: new Date()
+      latest_time: dt,
+      latest_date: dtSr,
+      create_date: dtSr
     })
   } catch(e) {
     console.log(`插入用户表错误: ${e.message}`)
@@ -16,11 +29,13 @@ exports.insertUser = async user => {
 }
 
 exports.updateUser = async user => {
+  const dt = new Date()
   await mysql.query('update dy_user set ? where u_id = ?', [{
     u_name: user.name,
     u_level: user.level,
     noble_level: user.nl,
-    latest_time: new Date()
+    latest_time: dt,
+    latest_date: getDateStr(dt)
   }, user.rid] )
 }
 
